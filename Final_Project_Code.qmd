@@ -19,11 +19,10 @@ When you click the **Render** button a document will be generated that includes 
 # Install relevant packages
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(
-  marginaleffects, tidyverse, Hmisc, gtsummary,
-  janitor, broom, knitr, pROC, labelled, lmtest, haven
+  marginaleffects, tidyverse, haven
 )
 
 # Load the dataset 
 nsch2023data <- readRDS("nsch2023data.rds")
-glimpse(nsch2023data)
+nsch2023data
 ```
