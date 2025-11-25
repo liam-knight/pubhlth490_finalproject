@@ -1,0 +1,29 @@
+---
+title: "Final Project R Code"
+format: pdf
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r, echo=TRUE}
+#| label: setup
+#| code-summary: "Setup"
+
+
+# Install relevant packages
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(
+  marginaleffects, tidyverse, Hmisc, gtsummary,
+  janitor, broom, knitr, pROC, labelled, lmtest, haven
+)
+
+# Load the dataset 
+nsch2023data <- readRDS("nsch2023data.rds")
+glimpse(nsch2023data)
+```
