@@ -1,28 +1,152 @@
 ---
-title: "Final Project R Code"
-format: pdf
+title: "Final Project"
+author: "Liam Knight, Yasmine Tighiouart, Zac Foerster" 
+subtitle: "Analysis of Childhood Homelessness by Children Who Have Lived with Someone with a Drug/Alcohol Problem"
+format:
+  pdf:
+    fig_height: 4
+    fig_width: 6
+    geometry: margin=0.75in
+    fontsize: 11pt
 ---
-
-## Quarto
-
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
-
-## Running Code
-
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
 
 ```{r, echo=TRUE}
 #| label: setup
 #| code-summary: "Setup"
 
-
 # Install relevant packages
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(
-  marginaleffects, tidyverse, haven
+  marginaleffects, tidyverse, haven, knitr, gtsummary,
+  Hmisc, janitor, broom, pROC, labelled, lmtest
 )
 
 # Load the dataset 
-nsch2023data <- readRDS("nsch2023data.rds")
-nsch2023data
+nsch2023data <- readRDS("nsch2023data.rds") %>% 
+  
+# Select the necessary columns
+select("ACE9", "EVERHOMELESS", "SC_RACE_R", "SC_AGE_YEARS", "SC_SEX") %>%
+  rename(Race = "SC_RACE_R",
+         Drug_Alc_Prob = "ACE9",
+         Age = "SC_AGE_YEARS",
+         Sex = "SC_SEX",
+         EverHomeless = "EVERHOMELESS")
+```
+
+\newpage
+
+```{r}
+#| label: Data
+#| code-summary: "Data Wrangling"
+
+dat <- nsch2023data %>% 
+mutate(
+Race = factor(Race, levels = c(1,2,3,4,5,7), 
+                       labels = c("White",
+                                  "Black",
+                                  "Native American",
+                                  "Asian",
+                                  "Pacific Islander",
+                                  "Two or More Races")),
+Drug_Alc_Prob = relevel(factor(Drug_Alc_Prob,
+                 levels = c(1,2),
+                 labels = c("Has", "Has Not")),
+          ref = "Has Not"),
+EverHomeless = factor(EverHomeless, levels = c(1,2,3), 
+                       labels = c("Yes", "No", "Unknown")),
+Sex = factor(Sex, levels = c(1,2), 
+                       labels = c("Male", "Female"))
+)
+```
+
+
+\newpage
+
+```{r}
+#| label: tbl1
+#| code-summary: "Table 1"
+
+tbl_summary(
+dat,
+include = c(EverHomeless, Drug_Alc_Prob,
+            Sex, Age, Race),
+type = all_continuous() ~ "continuous2",
+statistic = all_continuous() ~ c("{mean} ({sd})" , 
+                                 "{median} ({p25}-{p75})", 
+                                 "{min}-{max}"),
+missing_text = "Missing Data"
+) |>
+add_n() |> # add column with total number of non-missing observations
+modify_header(label = "**Variable**") |>
+modify_caption("**Patient Characteristics**")
+```
+
+\newpage
+
+```{r}
+#| label: tab_analysis
+#| code-summary: "Tabular Analysis"
+
+dat %>% 
+  tabyl(EverHomeless, Drug_Alc_Prob) %>%
+  adorn_totals(where = c("row", "col")) %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(digits =1) %>%
+  adorn_ns("front") %>%
+  kable()
+```
+
+```{r}
+#| label: model1
+#| code-summary: "Unadjusted Model"
+
+model1 <- (glm(EverHomeless ~ Drug_Alc_Prob, 
+               data = dat,
+               family = binomial(link = "logit")))
+kable(tidy(model1, exponentiate = TRUE, conf.int = TRUE), digits = 2)
+```
+
+\newpage
+
+```{r}
+#| label: tbl2
+#| code-summary: "Table 2"
+
+tbl_summary(
+dat,
+by = EverHomeless,
+include = c(Drug_Alc_Prob, Sex, Age, Race),
+type = all_continuous() ~ "continuous2",
+statistic = all_continuous() ~ c("{mean} ({sd})",
+                                 "{median} ({p25}-{p75})",
+                                 "{min}-{max}"),
+missing_text = "Missing Data"
+) |>
+add_n() |> # add column with total number of non-missing observations
+add_p(test.args = list(simulate.p.value = TRUE)) |> # test for a difference between groups
+modify_header(label = "**Variable**") |>
+modify_caption("**Patient Characteristics by Homelessness**") |>
+bold_labels() |>
+modify_spanning_header(c("stat_1", "stat_2") ~ "**Ever Been Homeless**")
+```
+
+\newpage
+
+```{r}
+#| label: model2
+#| code-summary: "Adjusted Model"
+
+model2 <- (glm(EverHomeless ~ Drug_Alc_Prob + Age + Sex + Race, 
+               data = dat, family = binomial(link = "logit")))
+kable(tidy(model2, exponentiate = TRUE, conf.int = TRUE), digits = 2)
+```
+
+```{r}
+#| label: AIC
+#| code-summary: "Backwards Selection AIC Minimization"
+no_na <- dat %>% 
+  drop_na()
+model_no_na <- (glm(EverHomeless ~ Drug_Alc_Prob + Age + Sex + Race, 
+               data = no_na, family = binomial(link = "logit")))
+step(model_no_na, direction = "backward")
 ```
