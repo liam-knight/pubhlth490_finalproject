@@ -59,7 +59,6 @@ Sex = factor(Sex, levels = c(1,2),
 )
 ```
 
-
 \newpage
 
 ```{r}
@@ -150,8 +149,8 @@ model_no_na <- (glm(EverHomeless ~ Drug_Alc_Prob + Age + Sex + Race,
                data = no_na, family = binomial(link = "logit")))
 step(model_no_na, direction = "backward")
 ```
+
 ```{r}
 plot_predictions(model1, by = "Drug_Alc_Prob")
 plot_predictions(model2, by = "Drug_Alc_Prob")
 ```
-
