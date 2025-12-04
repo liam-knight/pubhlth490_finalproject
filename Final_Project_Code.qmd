@@ -78,7 +78,7 @@ missing_text = "Missing Data"
 ) |>
 add_n() |> # add column with total number of non-missing observations
 modify_header(label = "**Variable**") |>
-modify_caption("**Patient Characteristics**")
+modify_caption("**Table 1: Patient Characteristics**")
 ```
 
 \newpage
@@ -125,7 +125,7 @@ missing_text = "Missing Data"
 add_n() |> # add column with total number of non-missing observations
 add_p(test.args = list(simulate.p.value = TRUE)) |> # test for a difference between groups
 modify_header(label = "**Variable**") |>
-modify_caption("**Patient Characteristics by Homelessness**") |>
+modify_caption("**Table 2: Patient Characteristics by Homelessness**") |>
 bold_labels() |>
 modify_spanning_header(c("stat_1", "stat_2") ~ "**Ever Been Homeless**")
 ```
