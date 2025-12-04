@@ -66,15 +66,13 @@ Sex = factor(Sex, levels = c(1,2),
 #| code-summary: "Table 1"
 
 tbl_summary(
-dat,
-include = c(EverHomeless, Drug_Alc_Prob,
-            Sex, Age, Race),
-type = all_continuous() ~ "continuous2",
-statistic = all_continuous() ~ c("{mean} ({sd})" , 
-                                 "{median} ({p25}-{p75})", 
-                                 "{min}-{max}"),
-missing_text = "Missing Data"
-) |>
+  dat,
+  include = c(EverHomeless, Drug_Alc_Prob, Sex, Age, Race),
+  type = all_continuous() ~ "continuous2",
+  statistic = all_continuous() ~ c("{mean} ({sd})", 
+                                   "{median} ({p25}-{p75})", 
+                                   "{min}-{max}"),
+  missing_text = "Missing Data") |>
 add_n() |> # add column with total number of non-missing observations
 modify_header(label = "**Variable**") |>
 modify_caption("**Table 1: Patient Characteristics**")
@@ -99,8 +97,7 @@ dat %>%
 #| label: model1
 #| code-summary: "Unadjusted Model"
 
-model1 <- (glm(EverHomeless ~ Drug_Alc_Prob, 
-               data = dat,
+model1 <- (glm(EverHomeless ~ Drug_Alc_Prob, data = dat,
                family = binomial(link = "logit")))
 kable(tidy(model1, exponentiate = TRUE, conf.int = TRUE), digits = 2)
 ```
@@ -112,15 +109,13 @@ kable(tidy(model1, exponentiate = TRUE, conf.int = TRUE), digits = 2)
 #| code-summary: "Table 2"
 
 tbl_summary(
-dat,
-by = EverHomeless,
-include = c(Drug_Alc_Prob, Sex, Age, Race),
-type = all_continuous() ~ "continuous2",
-statistic = all_continuous() ~ c("{mean} ({sd})",
-                                 "{median} ({p25}-{p75})",
-                                 "{min}-{max}"),
-missing_text = "Missing Data"
-) |>
+  dat,
+  by = EverHomeless,
+  include = c(Drug_Alc_Prob, Sex, Age, Race),
+  type = all_continuous() ~ "continuous2",
+  statistic = all_continuous() ~ c("{mean} ({sd})", "{median} 
+                                   ({p25}-{p75})", "{min}-{max}"),
+  missing_text = "Missing Data") |>
 add_n() |> # add column with total number of non-missing observations
 add_p(test.args = list(simulate.p.value = TRUE)) |> # test for a difference between groups
 modify_header(label = "**Variable**") |>
