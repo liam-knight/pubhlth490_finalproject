@@ -10,6 +10,10 @@ format:
     fontsize: 11pt
 ---
 
+## Setup and Data Wrangling:
+
+Setup, importing the data, and selecting the necessary columns for our tests:
+
 ```{r, echo=TRUE}
 #| label: setup
 #| code-summary: "Setup"
@@ -35,6 +39,8 @@ select("ACE9", "EVERHOMELESS", "SC_RACE_R", "SC_AGE_YEARS", "SC_SEX") %>%
 
 \newpage
 
+Data Wrangling: Renaming variables to be more clear, converting categorical variables to factor variables, and releveling `Drug_Alc_Prob` and `EverHomeless` to set the referent groups to the ones that have not lived with someone with a drug/alcohol problem and have not experienced homelessness.
+
 ```{r}
 #| label: Data
 #| code-summary: "Data Wrangling"
@@ -52,14 +58,19 @@ Drug_Alc_Prob = relevel(factor(Drug_Alc_Prob,
                  levels = c(1,2),
                  labels = c("Has", "Has Not")),
           ref = "Has Not"),
-EverHomeless = factor(EverHomeless, levels = c(1,2,3), 
+EverHomeless = relevel(factor(EverHomeless, levels = c(1,2,3), 
                        labels = c("Yes", "No", "Unknown")),
+              ref = "No"),
 Sex = factor(Sex, levels = c(1,2), 
                        labels = c("Male", "Female"))
 )
 ```
 
 \newpage
+
+## Descriptive Data Visualization:
+
+Creating a Table 1 to visualize our data, look for any potential missing/problematic values, and get a general idea of the data we are working with.
 
 ```{r}
 #| label: tbl1
@@ -78,20 +89,31 @@ modify_header(label = "**Variable**") |>
 modify_caption("**Table 1: Patient Characteristics**")
 ```
 
+Moving on as there are missing values but they are not large enough to impact our analysis, and there are no problematic values (other than possibly low sample sizes for Native Americans and Pacific Islanders).
+
 \newpage
+
+Creating a bivariate tabular analysis to get a sense of how our exposure and outcome variable interact. Using row percentages to get a better sense of the proportion of children who have experienced homelessness between different levels of our exposure variable.   
 
 ```{r}
 #| label: tab_analysis
 #| code-summary: "Tabular Analysis"
 
 dat %>% 
-  tabyl(EverHomeless, Drug_Alc_Prob) %>%
+  tabyl(Drug_Alc_Prob, EverHomeless) %>%
   adorn_totals(where = c("row", "col")) %>%
   adorn_percentages("row") %>%
-  adorn_pct_formatting(digits =1) %>%
+  adorn_pct_formatting(digits = 1) %>%
   adorn_ns("front") %>%
   kable()
 ```
+
+\hrulefill
+\newpage
+
+## Creating and Analyzing an Unadjusted Model:
+
+Creating model1, our unadjusted bivariate model. This will show the relationship between these two variables before adjusting for any covariates. This linear regression will be shown in both odds and probabilities for readability's sake.
 
 ```{r}
 #| label: model1
@@ -99,10 +121,18 @@ dat %>%
 
 model1 <- (glm(EverHomeless ~ Drug_Alc_Prob, data = dat,
                family = binomial(link = "logit")))
-kable(tidy(model1, exponentiate = TRUE, conf.int = TRUE), digits = 2)
+kable(tidy(model1, exponentiate = TRUE, conf.int = TRUE,), digits = 2)
+kable(predictions(model1, by = "Drug_Alc_Prob"))
 ```
 
+This shows that living with a drug/alcohol problem appears to be significantly associated with an increased likelihood of ever having experienced homelessness.
+
+\hrulefill
 \newpage
+
+## Setup for an Adjusted Model:
+
+Creating Table 2 to further visualize our data before attempting to create an adjusted model. We will analyze this table and (once again) look for any missing values, problematic values, and to begin investigating statistical significance. This is where we will be able to see if the small values for Native Americans and Pacific Islanders will be an issue.
 
 ```{r}
 #| label: tbl2
@@ -115,16 +145,23 @@ tbl_summary(
   type = all_continuous() ~ "continuous2",
   statistic = all_continuous() ~ c("{mean} ({sd})", "{median} 
                                    ({p25}-{p75})", "{min}-{max}"),
-  missing_text = "Missing Data") |>
-add_n() |> # add column with total number of non-missing observations
-add_p(test.args = list(simulate.p.value = TRUE)) |> # test for a difference between groups
+  missing_text = "Missing Data") |>  
+add_p(test.args = list(simulate.p.value = TRUE)) |> # Throwing an error and recommending simulated p values despite already doing that...
 modify_header(label = "**Variable**") |>
 modify_caption("**Table 2: Patient Characteristics by Homelessness**") |>
 bold_labels() |>
 modify_spanning_header(c("stat_1", "stat_2") ~ "**Ever Been Homeless**")
 ```
 
+Once again, missing data is not prevalent enough to warrant removing it, and there appears to be no problematic values. while sample sizes are small for Native Americans and Pacific Islanders, they don't seem to be small enough to warrant much concern. 
+
+Additionally, Asians have a surprisingly small number in the homeless group; however, this situation mirrors the ones seen in the other two aforementioned races, therefore we will not be changing/binning any values.
+
 \newpage
+
+## Creating an Adjusted Model
+
+Creating model2, our logistic regression model that adjusts for age, sex, and race as possible covariates. This model will be presented in odds (rather than logodds) for interpretation's sake.
 
 ```{r}
 #| label: model2
@@ -132,20 +169,57 @@ modify_spanning_header(c("stat_1", "stat_2") ~ "**Ever Been Homeless**")
 
 model2 <- (glm(EverHomeless ~ Drug_Alc_Prob + Age + Sex + Race, 
                data = dat, family = binomial(link = "logit")))
-kable(tidy(model2, exponentiate = TRUE, conf.int = TRUE), digits = 2)
+kable(tidy(model2, exponentiate = TRUE, conf.int = TRUE,), digits = 2)
 ```
+
+This shows that these covariates have statistically significant impacts on the likelihood of homelessness (except for race=Asian). While statistically significant, covariate influences on homelessness are much smaller than our exposure variable. 
+
+Age appears to have an extremely small effect size, but (as it is a continuous variable) it leads to a difference in odds of 16.96 between a 17-year-old and a 1-year-old. While the effect sizes vary, all races (excluding Asian) appear to have a higher likelihood of homelessness compared to White individuals.
+
+\hrulefill
+\newpage
+
+## Finding the Most Parsimonious Model:
+
+Attempting to use Backwards Selection AIC Minimization to find a more parsimonious model. This will be done with the current adjusted model (model 2) as well as a version of this model that excludes all missing values in the dataset to see if this changes the result.
 
 ```{r}
 #| label: AIC
 #| code-summary: "Backwards Selection AIC Minimization"
+
 no_na <- dat %>% 
   drop_na()
 model_no_na <- (glm(EverHomeless ~ Drug_Alc_Prob + Age + Sex + Race, 
                data = no_na, family = binomial(link = "logit")))
+
+step(model2, direction = "backward")
 step(model_no_na, direction = "backward")
 ```
 
+This appears to already be the most parsimonious version of the model as shown by both tests.
+
+\hrulefill
+\newpage
+
+## Plotting Our Data
+
+Plotting our data to see if the effects of living with someone with a drug/alcohol problem on ever being homeless change significantly when using the unadjusted vs. adjusted models.
+
 ```{r}
+#| label: Plot
+#| code-summary: "Plotting our Data"
+
 plot_predictions(model1, by = "Drug_Alc_Prob")
 plot_predictions(model2, by = "Drug_Alc_Prob")
 ```
+
+These plots are nearly identical, showing that this relationship holds even when adjusting for other covariates such as age, sex, and race.
+
+\newpage
+
+## Conclusions
+
+There appears to be a strong association between a child having lived with someone with a drug/alcohol problem and having experienced homelessness. This association has a clinically significant effect size; however, the covariates do not affect the model sufficiently to be considered majorly impactful. 
+
+Future models should attempt to adjust for more covariates and include these, as they are included in the most parsimonious model. Additionally, future data collection looking at solely this relationship would likely help increase the power of these models, therefore allowing for more conclusive findings.
+
