@@ -91,6 +91,7 @@ modify_caption("**Table 1: Patient Characteristics**")
 
 Moving on as there are missing values but they are not large enough to impact our analysis, and there are no problematic values (other than possibly low sample sizes for Native Americans and Pacific Islanders).
 
+\hrulefill
 \newpage
 
 Creating a bivariate tabular analysis to get a sense of how our exposure and outcome variable interact. Using row percentages to get a better sense of the proportion of children who have experienced homelessness between different levels of our exposure variable.   
@@ -113,7 +114,7 @@ dat %>%
 
 ## Creating and Analyzing an Unadjusted Model:
 
-Creating model1, our unadjusted bivariate model. This will show the relationship between these two variables before adjusting for any covariates. This linear regression will be shown in both odds and probabilities for readability's sake.
+Creating model1, our unadjusted bivariate model. This will show the relationship between these two variables before adjusting for any covariates. This logistic regression will be shown in both odds and probabilities for readability's sake.
 
 ```{r}
 #| label: model1
@@ -146,7 +147,8 @@ tbl_summary(
   statistic = all_continuous() ~ c("{mean} ({sd})", "{median} 
                                    ({p25}-{p75})", "{min}-{max}"),
   missing_text = "Missing Data") |>  
-add_p(test.args = list(simulate.p.value = TRUE)) |> # Throwing an error and recommending simulated p values despite already doing that...
+add_p(test.args = list(simulate.p.value = TRUE)) |> 
+  # ^ Throwing an error and recommending simulated p values despite already doing that...
 modify_header(label = "**Variable**") |>
 modify_caption("**Table 2: Patient Characteristics by Homelessness**") |>
 bold_labels() |>
@@ -157,6 +159,31 @@ Once again, missing data is not prevalent enough to warrant removing it, and the
 
 Additionally, Asians have a surprisingly small number in the homeless group; however, this situation mirrors the ones seen in the other two aforementioned races, therefore we will not be changing/binning any values.
 
+\newpage
+
+## Data Visualization: Histograms of Age
+
+Creating histograms to visualize the difference in age between the group that has experienced homelessness, and the group that has not.
+
+```{r}
+#| label: hist
+#| code-summary: "Histograms of Age"
+dat %>% 
+filter(EverHomeless == "Yes") %>% 
+  ggplot() +
+  geom_bar(aes(Age)) +
+  labs(title = "Histogram of Age (Homeless)", y = "Count")
+
+dat %>% 
+filter(EverHomeless == "No") %>% 
+  ggplot() +
+  geom_bar(aes(Age)) +
+  labs(title = "Histogram of Age (Not Homeless)", y = "Count")
+```
+
+As we can see, the group that has not experienced homelessness is much more uniformely distributed compared to the one that has. The group that has experienced homelessness appears to increase relatively linearly with age. This makes sense, as older children are more likely to have experienced homelessness due to being alive for longer.
+
+\hrulefill
 \newpage
 
 ## Creating an Adjusted Model
@@ -209,17 +236,19 @@ Plotting our data to see if the effects of living with someone with a drug/alcoh
 #| label: Plot
 #| code-summary: "Plotting our Data"
 
-plot_predictions(model1, by = "Drug_Alc_Prob")
-plot_predictions(model2, by = "Drug_Alc_Prob")
+plot_predictions(model1, by = "Drug_Alc_Prob") +
+  labs(title = "Unadjusted Model")
+plot_predictions(model2, by = "Drug_Alc_Prob") +
+  labs(title = "Adjusted Model")
 ```
 
 These plots are nearly identical, showing that this relationship holds even when adjusting for other covariates such as age, sex, and race.
 
-\newpage
+\hrulefill
 
 ## Conclusions
 
-There appears to be a strong association between a child having lived with someone with a drug/alcohol problem and having experienced homelessness. This association has a clinically significant effect size; however, the covariates do not affect the model sufficiently to be considered majorly impactful. 
+There appears to be a strong association between a child having lived with someone with a drug/alcohol problem and having experienced homelessness. This association has a clinically significant effect size; however, the covariates do not affect the model sufficiently enough to be considered majorly impactful. 
 
-Future models should attempt to adjust for more covariates and include these, as they are included in the most parsimonious model. Additionally, future data collection looking at solely this relationship would likely help increase the power of these models, therefore allowing for more conclusive findings.
+Future models should attempt to adjust for more covariates (and include the ones from this analysis, as they are included in the most parsimonious model). Additionally, future data collection looking at solely this relationship would likely help increase the power of these models, therefore allowing for more conclusive findings.
 
